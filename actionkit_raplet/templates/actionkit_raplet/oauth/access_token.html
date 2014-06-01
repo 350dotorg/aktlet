@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form method="POST">
+  {% csrf_token %}
+  <input type="hidden" name="grant_type" value="authorization_code" />
+  <input type="hidden" name="code"
+         value="{{ grant.code }}" />
+  <input type="hidden" name="client_id"
+         value="{{ grant.client.client_id }}" />
+  <input type="hidden" name="client_secret" 
+         value="{{ grant.client.client_secret }}" />
+  <input type="submit" value="Confirm" />
+</form>
+{% endblock %}

@@ -1,0 +1,210 @@
+The code comes with a simple Django project and Heroku configuration that can be used 
+to get a hosted version quickly up and running.  The configuration will be suitable
+for demo purposes and for light internal usage.  
+
+Note that HTTPS is a strict requirement for hosting a Raplet.  Adding an HTTPS endpoint
+on Heroku costs $20/month.  Other than that, the application is fully functional on Heroku
+without any additional costs or usage beyond the free tier -- although in several places 
+this involves trading performance for ease of setup.
+
+If you already have a wildcard SSL certificate, are comfortable
+configuring Apache with mod_ssl, and are willing to maintain your own
+WSGI server / database / etc, you can also install the
+application on your own server via Apache/mod_wsgi or another
+configuration with an Apache/mod_ssl HTTPS frontend.  This will likely
+be more cost-effective than Heroku's $20/month SSL endpoint.
+
+That said -- and especially if you are hosting the application
+yourself instead of using Heroku -- if you plan to use this heavily
+(e.g. a large number of simultaneous staff users activating the
+Raplet, or with a custom query that is very database-intensive) I
+recommend examining the configuration and making changes to suit your
+needs.
+
+The Django project will provide:
+
+* A Bootstrap-based base template, a login view, and a homepage
+* All functionality locked down to logged-in users only
+* All logged in users have full access to install and use the Raplet
+* Django Flat Pages are installed so you can add your own help pages, etc
+* All site templates can be modified through the web using django-dbtemplates
+* Through-the-web access to Django's Admin Site to manage users, templates, flat pages, and raplet configuration
+
+The core functionality is provided in an isolated Django app called "actionkit_raplet".  This
+can be integrated into any larger Django project, if the provided Django project does not
+meet your needs.
+
+Quick-Start on Heroku
+=====================
+
+You will need to create an account on Heroku and install the Heroku Toolbelt.  Then, from
+a terminal:
+
+.. code-block:: bash
+
+  git clone git://github.com/350dotorg/aktlet.git
+  cd aktlet
+  heroku apps:create
+  heroku plugins:install git://github.com/ddollar/heroku-config.git
+  git push heroku master
+  python standalone_django_project/required_environ.py .env
+  heroku config:push
+  heroku domains:add $(grep SITE_DOMAIN .env | tr '=' ' ' | cut -f2 -d' ')
+  heroku config:set HEROKU_DOMAIN="$(git remote -v | grep heroku | cut -f2 -d':' | cut -f1 -d'.' | uniq).herokuapp.com"
+  heroku run python manage.py syncdb
+  heroku open
+
+You will be prompted for input a few times during the installation -- for example
+to provide database credentials to your Actionkit instance, and to create
+a new Django superuser to log in to the site.  When this is done, a web browser
+will open and prompt you to log in.  (You may need to configure your DNS for the site domain
+you specified to point to the Heroku app, and then visit the app from that domain, 
+in order to see it successfully.)
+
+You should log in using the username and password for the Django superuser that you 
+just created.
+
+After logging in, visit /admin/actionkit/test_connection/ in the browser to confirm
+that your Actionkit database and API connection are properly configured.
+
+== Configuration ==
+
+You will then need to create a few objects through the Django admin
+interface.  Visit https://aktlet.example.org/admin/ to
+reach the admin interface.
+
+=== Setting up oauth ===
+
+ 1. Click on the "Add" link in the "Oauth2 : Clients" section.  You
+    should end up on a mostly-blank form at a URL like this:
+      https://aktlet.example.org/admin/oauth2/client/add/
+ 2. Leave "User" blank
+ 3. For "Name" fill in "Rapportive"
+ 4. For "Url" fill in "https://rapportive.com/"
+ 5. For "Redirect url" fill in "https://rapportive.com/" (same as Url)
+ 6. Replace the auto-generated "Client id" value with "rapportive"
+    (all lowercase)
+ 7. Leave the auto-generated "Client secret" as-is
+ 8. For "Client type" select "Confidential (Web application)"
+ 9. Click the blue "Save" button.
+
+=== Setting up aktlet data ===
+
+ 1. Return to the Django admin interface home screen.
+ 2. Click on the "Add" link in the "Actionkit_Raplet : Configurations"
+    section. 
+ 3. A pre-filled form will appear.  You can use the default values, or 
+    provide your own SQL query and/or Django template, which will be
+    used to display raplet data per email address.
+ 4. Click the blue "Save" button to save your raplet configuration.
+
+== Adding the Raplet ==
+
+The last step is to add the AKtlet as a custom Raplet plugin in your
+Rapportive account.  This step will need to be repeated by every user 
+who wishes to use the AKtlet in their own gmail account.
+
+If you're already logged in to Rapportive in your Gmail, you should be
+able to just visit rapportive.com/raplets in a browser and scroll to the "Custom
+Raplet" panel at the bottom.  If rapportive.com/raplets tells you that you need
+to log in, you'll need to do that from Gmail.  
+
+Unfortunately over the past year it's become increasingly hard to
+actually install Rapportive or reach their customer service with
+problems.  Rapportive seems to not work at all any more in Firefox,
+and for other browsers (Chrome, Safari) it's a bit hard to get started
+if you haven't already linked Rapportive to your Gmail account.
+
+In particular, after 2013's Gmail layout overhauls, the Rapportive UI
+seems to have broken somewhat -- the "Rapportive" tab in the top of
+the screen next to your login name has now disappeared.  Unfortunately
+that tab is what you need to interact with to log in ... I was able to
+work around the problem by opening up an email, waiting for the
+rapportive sidebar to load, and clicking "Connect Linkedin" -- that
+forced Gmail to log me in to Rapportive, and then I was able to visit
+rapportive.com/raplets properly.  If that doesn't work, try visiting
+rapportive.com/login and following the prompts there.
+
+When you click the "Install" button to add a Custom Raplet, you should
+enter the URL that you specified in the prompt earlier, plus /raplet/,
+e.g.:
+
+  https://aktlet.example.org/raplet/
+
+You'll then be passed through a sequence of popup windows where you
+need to (1) log in with the username and password you created above;
+(2) grant rapportive permission to make API calls on your behalf; (3)
+confirm the authorization.  If all goes well you'll then be taken back
+to the rapportive.com/raplets configuration screen with the "Actionkit Raplet"
+successfully installed.
+
+You should then shift+reload your gmail window, open up an email from
+anyone in your Actionkit database, and wait for the AK data to load on
+the sidebar.
+
+To adjust the information shown in the sidebar, you can edit the SQL
+query and Django template that you created through the admin site
+above.  Changes will take effect immediately.
+
+== Debugging ==
+
+If something goes wrong, you can run the following command in a terminal to view the
+application's logs as you interact with the site:
+
+.. code-block:: bash
+
+  heroku logs -t
+
+That might provide enough information to figure out the problem.  If not, you can 
+switch the site into debug mode by running:
+
+.. code-block:: bash
+
+  heroku config:set DJANGO_DEBUG=1 DJANGO_DEBUG_TOOLBAR=1 INTERNAL_IPS=*
+
+This will cause the site to display detailed debugging information in the browser
+when any error occurs.  It will also cause the site to have a "debug mode" sidebar
+that can be expanded on any page to view detailed SQL logs and other information.
+
+When you're finished debugging, you should take the site out of debug mode by running:
+
+{{{
+heroku config:unset DJANGO_DEBUG DJANGO_DEBUG_TOOLBAR INTERNAL_IPS
+}}}
+
+Quick-Start for Local Development
+=================================
+
+To develop and run the system locally, or on your own server, looks
+similar to running on Heroku:
+
+.. code-block:: bash
+
+  git clone git://github.com/350dotorg/aktlet.git
+  cd actionkit_raplet
+  virtualenv --python=python2.7 venv
+  ./venv/bin/pip install -r requirements.txt
+  ./venv/bin/python standalone_django_project/required_environ.py .env
+  export `cat .env`
+  export DATABASE_URL=sqlite:///`pwd`/dev.sqlite
+  ./venv/bin/python manage.py syncdb
+  ./venv/bin/python manage.py runserver
+
+You will then follow the same "Configuration" steps outlined above.
+
+However, the AKtlet will not work properly in-browser until you set it
+up to run over HTTPS.
+
+Deficiencies
+============
+
+As mentioned above, this setup lacks several important components of a secure, 
+maintainable production infrastructure.  For example:
+
+* Static files are served locally from the Heroku environment instead of e.g. S3
+* No system is set up to capture access and error logs (e.g. Papertrail)
+* Raplet queries are not cached at all
+
+If you plan on leaving this web application running for a long time and using it
+heavily, setting up your own installation instead of relying on this quick-start
+guide is highly recommended.

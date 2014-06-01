@@ -1,0 +1,10 @@
+Django==1.5.7
+djangohelpers
+gunicorn
+psycopg2
+django-debug-toolbar==0.9.4
+django-dbtemplates
+dj-database-url==0.2.1
+
+git+git://github.com/ejucovy/django-oauth2-provider.git#egg=django-oauth2-provider
+git+git://github.com/boldprogressives/django-actionkit-client.git#egg=django-actionkit
